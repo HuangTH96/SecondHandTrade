@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡鲁二手哥</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>卡鲁二手哥</h1>
+            <div class="header-actions">
+                <div class="nav-links">
+                    <a href="{{ url_for('users') }}" class="nav-link">用户列表</a>
+                    {% if session.get('username') %}
+                        <span class="username">当前用户：{{ session.get('username') }}</span>
+                        <a href="{{ url_for('user_profile', user_id=session.get('user_id')) }}" class="nav-link">我的主页</a>
+                        <a href="{{ url_for('logout') }}" class="logout-btn">退出</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="login-btn">登录</a>
+                    {% endif %}
+                    <a href="{{ url_for('upload') }}" class="upload-btn">上传新物品</a>
+                </div>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="search-box">
+            <form method="GET" action="{{ url_for('index') }}">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="搜索物品...">
+                <button type="submit">搜索</button>
+            </form>
+        </div>
+
+        <div class="items-grid">
+            {% for item in items %}
+            <div class="item-card">
+                <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.title }}">
+                <div class="item-info">
+                    <h3>{{ item.title }}</h3>
+                    <p class="description">{{ item.description }}</p>
+                    <p class="price">价格: ¥{{ "%.2f"|format(item.price) }}</p>
+                    <p class="category">类别: {{ item.category }}</p>
+                    <p class="owner">发布者: <a href="{{ url_for('user_profile', user_id=item.user_id) }}">{{ item.owner.username }}</a></p>
+                    <div class="actions">
+                        {% if not item.is_reserved %}
+                            <a href="{{ url_for('reserve', item_id=item.id) }}" class="btn reserve-btn">预定</a>
+                        {% else %}
+                            <span class="reserved">已预定</span>
+                            {% if session.get('user_id') == item.user_id %}
+                                <a href="{{ url_for('cancel', item_id=item.id) }}" class="btn cancel-btn">取消预定</a>
+                            {% endif %}
+                        {% endif %}
+                        {% if session.get('user_id') == item.user_id %}
+                            <a href="{{ url_for('delete', item_id=item.id) }}" class="btn delete-btn" onclick="return confirm('确定要删除这个物品吗？')">删除</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html> 

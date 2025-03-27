@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户列表 - 卡鲁二手哥</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>用户列表</h1>
+            <a href="{{ url_for('index') }}" class="back-btn">返回首页</a>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="users-container">
+            <div class="users-section online-users">
+                <h2>在线用户 ({{ online_users|length }})</h2>
+                <div class="users-grid">
+                    {% for user in online_users %}
+                    <div class="user-card">
+                        <div class="user-status online"></div>
+                        <h3>{{ user.username }}</h3>
+                        <p class="user-info">上次在线：刚刚</p>
+                        <a href="{{ url_for('user_profile', user_id=user.id) }}" class="btn view-profile-btn">查看主页</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="users-section offline-users">
+                <h2>离线用户 ({{ offline_users|length }})</h2>
+                <div class="users-grid">
+                    {% for user in offline_users %}
+                    <div class="user-card">
+                        <div class="user-status offline"></div>
+                        <h3>{{ user.username }}</h3>
+                        <p class="user-info">上次在线：{{ ((user.last_seen - now).total_seconds() / 60)|int }} 分钟前</p>
+                        <a href="{{ url_for('user_profile', user_id=user.id) }}" class="btn view-profile-btn">查看主页</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

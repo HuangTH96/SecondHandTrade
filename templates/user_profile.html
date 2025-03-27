@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.username }}的主页 - 卡鲁二手哥</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ user.username }}的主页</h1>
+            <div class="header-actions">
+                <a href="{{ url_for('index') }}" class="back-btn">返回首页</a>
+                {% if session.get('user_id') == user.id %}
+                    <a href="{{ url_for('toggle_show_sold') }}" class="settings-btn">
+                        {% if user.show_sold_items %}
+                            隐藏已售物品
+                        {% else %}
+                            显示已售物品
+                        {% endif %}
+                    </a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="user-profile">
+            <div class="user-info">
+                <h2>用户信息</h2>
+                <p class="status">
+                    状态：
+                    {% if user.is_online() %}
+                        <span class="online-status">在线</span>
+                    {% else %}
+                        <span class="offline-status">离线</span>
+                    {% endif %}
+                </p>
+                <p>上次在线：{{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            </div>
+
+            <div class="items-section">
+                <h2>在售物品 ({{ active_items|length }})</h2>
+                <div class="items-grid">
+                    {% for item in active_items %}
+                    <div class="item-card">
+                        <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.title }}">
+                        <div class="item-info">
+                            <h3>{{ item.title }}</h3>
+                            <p class="description">{{ item.description }}</p>
+                            <p class="price">价格: ¥{{ "%.2f"|format(item.price) }}</p>
+                            <p class="category">类别: {{ item.category }}</p>
+                            <div class="actions">
+                                {% if session.get('user_id') == user.id %}
+                                    <a href="{{ url_for('mark_as_sold', item_id=item.id) }}" class="btn mark-sold-btn" onclick="return confirm('确定要将此物品标记为已售出吗？')">标记为已售</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if sold_items and (user.show_sold_items or session.get('user_id') == user.id) %}
+            <div class="items-section sold-items">
+                <h2>已售物品 ({{ sold_items|length }})</h2>
+                <div class="items-grid">
+                    {% for item in sold_items %}
+                    <div class="item-card sold">
+                        <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.title }}">
+                        <div class="item-info">
+                            <h3>{{ item.title }}</h3>
+                            <p class="description">{{ item.description }}</p>
+                            <p class="price">价格: ¥{{ "%.2f"|format(item.price) }}</p>
+                            <p class="category">类别: {{ item.category }}</p>
+                            <div class="sold-badge">已售出</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html> 
