@@ -1,72 +1,296 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>卡鲁二手哥</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>卡鲁二手哥</h1>
-            <div class="header-actions">
-                <div class="nav-links">
-                    <a href="{{ url_for('users') }}" class="nav-link">用户列表</a>
-                    {% if session.get('username') %}
-                        <span class="username">当前用户：{{ session.get('username') }}</span>
-                        <a href="{{ url_for('user_profile', user_id=session.get('user_id')) }}" class="nav-link">我的主页</a>
-                        <a href="{{ url_for('logout') }}" class="logout-btn">退出</a>
-                    {% else %}
-                        <a href="{{ url_for('login') }}" class="login-btn">登录</a>
-                    {% endif %}
-                    <a href="{{ url_for('upload') }}" class="upload-btn">上传新物品</a>
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+/* 基础样式 */
+.reserve-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.reserve-btn.authorized {
+    background-color: #007bff;
+    color: white;
+    border: none;
+}
+
+.reserve-btn.unauthorized {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.reserve-btn.authorized:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.publish-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.publish-button .material-icons {
+    font-size: 24px;
+}
+
+.publish-button.authorized {
+    background-color: #007bff;
+    color: white;
+}
+
+.publish-button.unauthorized {
+    background-color: #6c757d;
+    color: white;
+    cursor: pointer;
+}
+
+.publish-button.authorized:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+    .publish-button {
+        bottom: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .publish-button .material-icons {
+        font-size: 20px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="search-section">
+        <form id="searchForm" class="search-form" method="GET" action="{{ url_for('index') }}">
+            <div class="search-inputs">
+                <div class="search-field">
+                    <input type="text" id="search" name="search" value="{{ request.args.get('search', '') }}" placeholder="搜索物品..." oninput="autoUpdate()">
+                </div>
+                <div class="search-field">
+                    <select id="category" name="category" onchange="autoUpdate()">
+                        <option value="">所有分类</option>
+                        <option value="办公" {% if request.args.get('category') == '办公' %}selected{% endif %}>办公</option>
+                        <option value="家用电子" {% if request.args.get('category') == '家用电子' %}selected{% endif %}>家用电子</option>
+                        <option value="生活用品" {% if request.args.get('category') == '生活用品' %}selected{% endif %}>生活用品</option>
+                        <option value="学习资料" {% if request.args.get('category') == '学习资料' %}selected{% endif %}>学习资料</option>
+                    </select>
+                </div>
+                <div class="search-field">
+                    <select id="sort" name="sort" onchange="autoUpdate()">
+                        <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>最新发布</option>
+                        <option value="price_high" {% if request.args.get('sort') == 'price_high' %}selected{% endif %}>价格从高到低</option>
+                        <option value="price_low" {% if request.args.get('sort') == 'price_low' %}selected{% endif %}>价格从低到高</option>
+                    </select>
                 </div>
             </div>
-        </header>
+        </form>
+    </div>
 
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    <div class="items-tabs">
+        <button class="tab-button {% if not request.args.get('reserved') %}active{% endif %}" onclick="switchTab('available')">可预定物品</button>
+        <button class="tab-button {% if request.args.get('reserved') %}active{% endif %}" onclick="switchTab('reserved')">已预定物品</button>
+    </div>
 
-        <div class="search-box">
-            <form method="GET" action="{{ url_for('index') }}">
-                <input type="text" name="search" value="{{ search_query }}" placeholder="搜索物品...">
-                <button type="submit">搜索</button>
-            </form>
-        </div>
-
-        <div class="items-grid">
-            {% for item in items %}
-            <div class="item-card">
+    <div class="items-grid">
+        {% for item in items %}
+        <div class="item-card" data-aos="fade-up">
+            <div class="item-image">
                 <img src="{{ url_for('static', filename=item.image_path) }}" alt="{{ item.title }}">
-                <div class="item-info">
-                    <h3>{{ item.title }}</h3>
-                    <p class="description">{{ item.description }}</p>
-                    <p class="price">价格: ¥{{ "%.2f"|format(item.price) }}</p>
-                    <p class="category">类别: {{ item.category }}</p>
-                    <p class="owner">发布者: <a href="{{ url_for('user_profile', user_id=item.user_id) }}">{{ item.owner.username }}</a></p>
-                    <div class="actions">
-                        {% if not item.is_reserved %}
-                            <a href="{{ url_for('reserve', item_id=item.id) }}" class="btn reserve-btn">预定</a>
-                        {% else %}
-                            <span class="reserved">已预定</span>
-                            {% if session.get('user_id') == item.user_id %}
-                                <a href="{{ url_for('cancel', item_id=item.id) }}" class="btn cancel-btn">取消预定</a>
+                {% if item.is_reserved %}
+                <div class="reserved-badge">已预定</div>
+                {% endif %}
+            </div>
+            <div class="item-info">
+                <h3>{{ item.title }}</h3>
+                <p class="item-price">¥{{ "%.2f"|format(item.price) }}</p>
+                <p class="item-category">{{ item.category }}</p>
+                <p class="item-description">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                <div class="item-actions">
+                    {% if g.user %}
+                        {% if not item.is_reserved and item.user_id != g.user.id %}
+                            {% if g.user.is_authorized %}
+                                <button onclick="reserveItem({{ item.id }})" class="reserve-btn authorized">预定</button>
+                            {% else %}
+                                <button onclick="handleUnauthorizedAction('reserve')" class="reserve-btn unauthorized">预定</button>
                             {% endif %}
                         {% endif %}
-                        {% if session.get('user_id') == item.user_id %}
-                            <a href="{{ url_for('delete', item_id=item.id) }}" class="btn delete-btn" onclick="return confirm('确定要删除这个物品吗？')">删除</a>
+                        {% if item.user_id == g.user.id %}
+                            <a href="{{ url_for('delete', item_id=item.id) }}" class="button delete-button">删除</a>
                         {% endif %}
-                    </div>
+                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% else %}
+        <div class="no-items">
+            <p>暂无物品</p>
+        </div>
+        {% endfor %}
     </div>
-</body>
-</html> 
+</div>
+
+<!-- 预定成功弹窗 -->
+<div id="reserveSuccessModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>预定成功！</h2>
+        <p>您已成功预定该物品。</p>
+        <button onclick="closeModal()">确定</button>
+    </div>
+</div>
+
+<script>
+let updateTimeout;
+
+function autoUpdate() {
+    clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(() => {
+        document.getElementById('searchForm').submit();
+    }, 500);
+}
+
+function switchTab(tab) {
+    const url = new URL(window.location.href);
+    if (tab === 'reserved') {
+        url.searchParams.set('reserved', 'true');
+    } else {
+        url.searchParams.delete('reserved');
+    }
+    window.location.href = url.toString();
+}
+
+function showReserveSuccess(event) {
+    event.preventDefault();
+    const modal = document.getElementById('reserveSuccessModal');
+    modal.style.display = "block";
+    
+    // 发送预定请求
+    fetch(event.target.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 预定成功后移除物品卡片
+            const itemCard = event.target.closest('.item-card');
+            itemCard.style.opacity = '0';
+            setTimeout(() => {
+                itemCard.remove();
+            }, 300);
+        }
+    });
+}
+
+function closeModal() {
+    const modal = document.getElementById('reserveSuccessModal');
+    modal.style.display = "none";
+}
+
+// 点击弹窗外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('reserveSuccessModal');
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+function handleUnauthorizedAction(type) {
+    const admin = document.querySelector('[data-admin-id]');
+    const adminId = admin ? admin.dataset.adminId : null;
+    
+    if (adminId) {
+        if (confirm('您还没有获得授权，是否联系管理员申请授权？')) {
+            notifyAdmin(adminId);
+        }
+    } else {
+        alert('您还没有获得授权，请联系管理员申请授权');
+    }
+}
+
+function notifyAdmin(adminId) {
+    fetch(`/notify_admin/${adminId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('已发送授权申请，请等待管理员处理');
+        } else if (data.status === 'info') {
+            alert(data.message);
+        } else {
+            alert('发送申请失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('发送申请失败，请稍后重试');
+    });
+}
+
+function reserveItem(itemId) {
+    fetch(`/reserve/${itemId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('预定成功！');
+            location.reload();
+        } else {
+            alert(data.message || '预定失败，请稍后重试');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('预定失败，请稍后重试');
+    });
+}
+</script>
+
+<!-- 发布物品按钮 -->
+{% if g.user %}
+    {% if g.user.is_authorized %}
+        <a href="{{ url_for('upload') }}" class="publish-button authorized" title="发布物品">
+            <span class="material-icons">add</span>
+        </a>
+    {% else %}
+        <a href="javascript:void(0)" onclick="handleUnauthorizedAction('publish')" class="publish-button unauthorized" title="发布物品">
+            <span class="material-icons">add</span>
+        </a>
+    {% endif %}
+{% endif %}
+{% endblock %} 

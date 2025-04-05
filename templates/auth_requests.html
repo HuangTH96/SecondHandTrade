@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}授权申请列表 - 卡鲁二手哥{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>待处理的授权申请</h1>
+    
+    {% if requests %}
+    <div class="auth-requests">
+        {% for request in requests %}
+        <div class="auth-request-card">
+            <div class="request-info">
+                <h3>申请用户：{{ request.requester.username }}</h3>
+                <p class="request-time">申请时间：{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                {% if request.message %}
+                <p class="request-message">申请说明：{{ request.message }}</p>
+                {% endif %}
+                <div class="user-stats">
+                    <p>注册时间：{{ request.requester.created_at.strftime('%Y-%m-%d') }}</p>
+                    <p>登录次数：{{ request.requester.login_count }} 次</p>
+                    <p>最后登录：{{ request.requester.last_login_at.strftime('%Y-%m-%d %H:%M:%S') if request.requester.last_login_at else '从未登录' }}</p>
+                </div>
+            </div>
+            <div class="request-actions">
+                <form action="{{ url_for('process_auth_request', request_id=request.id, action='approve') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn approve-btn">批准授权</button>
+                </form>
+                <form action="{{ url_for('process_auth_request', request_id=request.id, action='reject') }}" method="post" class="inline-form">
+                    <button type="submit" class="btn reject-btn">拒绝申请</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-requests">当前没有待处理的授权申请</p>
+    {% endif %}
+</div>
+
+<style>
+.auth-requests {
+    margin-top: 20px;
+}
+
+.auth-request-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.request-info h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.request-time {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.request-message {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.user-stats {
+    margin: 15px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.user-stats p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.request-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.approve-btn {
+    background: #28a745;
+    color: white;
+}
+
+.approve-btn:hover {
+    background: #218838;
+}
+
+.reject-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.reject-btn:hover {
+    background: #c82333;
+}
+
+.no-requests {
+    text-align: center;
+    color: #666;
+    margin-top: 40px;
+    font-size: 1.1em;
+}
+</style>
+{% endblock %} 

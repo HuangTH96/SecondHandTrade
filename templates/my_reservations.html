@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}我的预定 - 卡鲁二手哥{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header>
+        <h1>我的预定</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('index') }}" class="back-btn">返回首页</a>
+        </div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="reservations-summary">
+        <h2>预定统计</h2>
+        <p>当前预定物品数量：{{ reservations|length }}</p>
+        <p>预定物品总价：¥{{ "%.2f"|format(total_price) }}</p>
+    </div>
+
+    <div class="items-section">
+        <h2>预定物品列表</h2>
+        {% if reservations %}
+            <div class="items-grid">
+                {% for reservation in reservations %}
+                <div class="item-card reservation">
+                    <div class="countdown" data-expires="{{ reservation.expires_at.isoformat() }}">
+                        剩余时间：{{ (reservation.get_remaining_time().total_seconds() / 3600)|int }}小时
+                        {{ ((reservation.get_remaining_time().total_seconds() % 3600) / 60)|int }}分钟
+                    </div>
+                    <img src="{{ url_for('static', filename=reservation.item.image_path) }}" alt="{{ reservation.item.title }}">
+                    <div class="item-info">
+                        <h3>{{ reservation.item.title }}</h3>
+                        <p class="description">{{ reservation.item.description }}</p>
+                        <p class="price">价格: ¥{{ "%.2f"|format(reservation.item.price) }}</p>
+                        <p class="category">类别: {{ reservation.item.category }}</p>
+                        <p class="owner">发布者: <a href="{{ url_for('user_profile', user_id=reservation.item.user_id) }}">{{ reservation.item.owner.username }}</a></p>
+                        <p class="reservation-time">预定时间：{{ reservation.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p class="expiration-time">过期时间：{{ reservation.expires_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-items">您当前没有预定任何物品</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 更新倒计时
+function updateReservationTimers() {
+    const timers = document.querySelectorAll('.countdown');
+    timers.forEach(timer => {
+        const expiresAt = new Date(timer.dataset.expires);
+        const now = new Date();
+        const diff = expiresAt - now;
+        
+        if (diff <= 0) {
+            timer.textContent = '预定已过期';
+            timer.classList.add('expired');
+        } else {
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            timer.textContent = `剩余时间：${hours}小时${minutes}分钟`;
+        }
+    });
+}
+
+// 每分钟更新一次倒计时
+setInterval(updateReservationTimers, 60000);
+updateReservationTimers(); // 立即更新一次
+</script>
+{% endblock %} 

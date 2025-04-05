@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}在线用户 - 卡鲁二手哥{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="user-section">
+        <h3 class="section-subtitle">
+            <span class="dot online"></span>
+            在线用户 ({{ users|selectattr('is_online', 'true')|list|length }})
+        </h3>
+        <div class="user-list">
+            {% for user in users %}
+                {% if user.is_online %}
+                    <div class="user-item">
+                        <div class="user-avatar">
+                            <span class="material-icons">account_circle</span>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                {{ user.username }}
+                                {% if user.is_admin %}
+                                    <span class="badge admin">管理员</span>
+                                {% endif %}
+                            </div>
+                            <div class="user-status">在线</div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.user-section {
+    margin-bottom: 30px;
+}
+
+.section-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.dot.online {
+    background-color: #28a745;
+}
+
+.user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.user-avatar .material-icons {
+    font-size: 36px;
+    color: #666;
+}
+
+.user-info {
+    flex-grow: 1;
+}
+
+.user-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    color: #333;
+}
+
+.user-status {
+    font-size: 14px;
+    color: #666;
+}
+
+.badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: white;
+}
+
+.badge.admin {
+    background-color: #ff4757;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .user-item {
+        padding: 10px;
+    }
+}
+</style>
+{% endblock %} 

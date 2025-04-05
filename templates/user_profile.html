@@ -1,12 +1,356 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ user.username }}的主页 - 卡鲁二手哥</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }}的主页 - 卡鲁二手哥{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 基础样式 */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+.info-item {
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.online-status { color: #28a745; }
+.offline-status { color: #6c757d; }
+.authorized-status { color: #007bff; }
+.unauthorized-status { color: #dc3545; }
+.waiting-status {
+    color: #ffc107;  /* 黄色 */
+}
+
+/* 未授权状态的遮罩和提示 */
+body.has-overlay {
+    overflow: hidden !important;
+}
+
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 999999;
+}
+
+.auth-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.5);
+    background: white;
+    padding: 50px 70px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    z-index: 1000000;
+    min-width: 400px;
+    max-width: 90%;
+}
+
+.auth-message .message-text {
+    font-size: 32px;
+    font-weight: 500;
+    margin-bottom: 40px;
+    color: #333;
+}
+
+.auth-message .contact-admin {
+    display: inline-block;
+    padding: 16px 36px;
+    background: #007bff;
+    color: white !important;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 22px;
+    transition: all 0.3s ease;
+}
+
+.auth-message .contact-admin:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.hiding {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+/* 删除账户按钮样式 */
+.delete-account-section {
+    margin-top: 40px;
+    padding: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.delete-account-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #fff;
+    color: #FF3B30;
+    border: 2px solid #FF3B30;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.delete-account-btn:hover {
+    background-color: #FF3B30;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2);
+}
+
+.delete-account-btn .material-icons {
+    font-size: 20px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.delete-account-warning {
+    color: #666;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.admin-status {
+    color: #9c27b0;
+    font-weight: bold;
+}
+
+.user-status {
+    color: #2196f3;
+}
+
+.auth-request-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.request-auth-btn {
+    background: #2196f3;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.request-auth-btn:hover {
+    background: #1976d2;
+    transform: translateY(-2px);
+}
+
+.request-auth-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 申请表单弹窗样式 */
+.auth-request-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-request-form {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.auth-request-form h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+}
+
+.auth-request-form textarea {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.submit-btn {
+    background: #2196f3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.contact-admin-btn {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.contact-admin-btn .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #2196f3;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.contact-admin-btn .btn:hover {
+    background-color: #1976d2;
+    transform: translateY(-2px);
+}
+
+.contact-admin-btn .material-icons {
+    font-size: 20px;
+}
+</style>
+
+<script>
+function closeAuthMessage() {
+    const overlay = document.querySelector('.auth-overlay');
+    const message = document.querySelector('.auth-message');
+    if (overlay && message) {
+        overlay.classList.add('hiding');
+        message.classList.add('hiding');
+        document.body.classList.remove('has-overlay');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            message.style.display = 'none';
+        }, 300);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.querySelector('.auth-overlay')) {
+        document.body.classList.add('has-overlay');
+    }
+});
+</script>
+{% endblock %}
+
+{% block body %}
+{% if session.get('user_id') %}
+    <!-- 已登录用户的导航栏 -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="{{ url_for('index') }}" class="logo">卡鲁二手哥</a>
+        </div>
+    </nav>
+{% else %}
+    <!-- 未登录用户的导航栏 -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="{{ url_for('index') }}" class="logo">卡鲁二手哥</a>
+        </div>
+    </nav>
+{% endif %}
+
+<div class="left-toolbar">
+    <div class="toolbar-content">
+        <a href="{{ url_for('users') }}" class="toolbar-link">
+            <span class="material-icons">group</span>
+            <span>在线用户</span>
+        </a>
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('my_reservations') }}" class="toolbar-link">
+                <span class="material-icons">bookmark</span>
+                <span>我的预定</span>
+            </a>
+            <a href="{{ url_for('user_profile', user_id=session.get('user_id')) }}" class="toolbar-link">
+                <span class="material-icons">person</span>
+                <span>个人主页</span>
+            </a>
+            <a href="{{ url_for('logout') }}" class="toolbar-link">
+                <span class="material-icons">logout</span>
+                <span>退出登录</span>
+            </a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="toolbar-link">
+                <span class="material-icons">login</span>
+                <span>登录</span>
+            </a>
+            <a href="{{ url_for('register') }}" class="toolbar-link">
+                <span class="material-icons">person_add</span>
+                <span>注册</span>
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if session.get('user_id') and g.user and g.user.is_authorized %}
+<a href="{{ url_for('upload') }}" class="publish-button">
+    <span class="material-icons">add_circle</span>
+    <span>发布物品</span>
+</a>
+{% endif %}
+
+<div class="flash-messages">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flash auto-dismiss">{{ message | safe }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<div class="content">
     <div class="container">
         <header>
             <h1>{{ user.username }}的主页</h1>
@@ -24,26 +368,52 @@
             </div>
         </header>
 
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
         <div class="user-profile">
             <div class="user-info">
                 <h2>用户信息</h2>
-                <p class="status">
-                    状态：
-                    {% if user.is_online() %}
-                        <span class="online-status">在线</span>
-                    {% else %}
-                        <span class="offline-status">离线</span>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>状态：</strong>
+                        {% if user.is_online() %}
+                            <span class="online-status">在线</span>
+                        {% else %}
+                            <span class="offline-status">离线</span>
+                        {% endif %}
+                    </div>
+                    {% if user.is_admin and g.user and not g.user.is_admin and not g.user.is_authorized %}
+                    <div class="info-item auth-request-item">
+                        <button onclick="requestAuth()" class="request-auth-btn" {% if g.user.has_pending_request(user.id) %}disabled{% endif %}>
+                            申请授权
+                        </button>
+                    </div>
                     {% endif %}
-                </p>
-                <p>上次在线：{{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    <div class="info-item">
+                        <strong>授权状态：</strong>
+                        {% if user.is_authorized %}
+                            <span class="authorized-status">已授权</span>
+                        {% elif admin_user and g.user and g.user.has_pending_request(admin_user.id) %}
+                            <span class="waiting-status">等待确认</span>
+                        {% else %}
+                            <span class="unauthorized-status">未授权</span>
+                        {% endif %}
+                    </div>
+                    <div class="info-item">
+                        <strong>注册时间：</strong>
+                        {{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </div>
+                    <div class="info-item">
+                        <strong>最后在线：</strong>
+                        {{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') if user.last_seen else '从未在线' }}
+                    </div>
+                    <div class="info-item">
+                        <strong>在售物品：</strong>
+                        <span>{{ user.get_active_items_count() }} 个</span>
+                    </div>
+                    <div class="info-item">
+                        <strong>当前预定：</strong>
+                        <span>{{ user.get_active_reservations_count() }} 个</span>
+                    </div>
+                </div>
             </div>
 
             <div class="items-section">
@@ -87,7 +457,166 @@
                 </div>
             </div>
             {% endif %}
+
+            {% if session.get('user_id') == user.id %}
+            <div class="delete-account-section">
+                <a href="{{ url_for('delete_account') }}" class="delete-account-btn" onclick="return confirm('警告：此操作将永久删除您的账户和所有相关数据，包括发布的物品、预定记录等。此操作不可撤销，确定要继续吗？')">
+                    <span class="material-icons">delete_forever</span>
+                    删除账户
+                </a>
+                <p class="delete-account-warning">删除账户后，您的所有数据将被永久删除且无法恢复</p>
+            </div>
+            {% endif %}
         </div>
     </div>
-</body>
-</html> 
+</div>
+
+<script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script>
+    AOS.init({
+        duration: 800,
+        easing: 'ease-out-cubic',
+        once: true
+    });
+
+    // 自动隐藏闪现消息
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashMessages = document.querySelectorAll('.flash');
+        flashMessages.forEach(function(flash) {
+            setTimeout(function() {
+                flash.remove();
+            }, 7000);
+        });
+    });
+
+    // 左侧工具栏的显示/隐藏逻辑
+    const leftToolbar = document.querySelector('.left-toolbar');
+    let isHovering = false;
+    let timeoutId;
+
+    function showToolbar() {
+        leftToolbar.classList.add('show');
+    }
+
+    function hideToolbar() {
+        if (!isHovering) {
+            leftToolbar.classList.remove('show');
+        }
+    }
+
+    // 监听鼠标移动到左侧边缘
+    document.addEventListener('mousemove', function(e) {
+        if (e.clientX <= 10) {
+            showToolbar();
+            clearTimeout(timeoutId);
+        }
+    });
+
+    // 监听鼠标离开工具栏
+    leftToolbar.addEventListener('mouseleave', function() {
+        isHovering = false;
+        timeoutId = setTimeout(hideToolbar, 300);
+    });
+
+    // 监听鼠标进入工具栏
+    leftToolbar.addEventListener('mouseenter', function() {
+        isHovering = true;
+        clearTimeout(timeoutId);
+    });
+</script>
+
+<!-- 申请表单弹窗 -->
+<div id="authRequestModal" class="auth-request-modal">
+    <div class="auth-request-form">
+        <h3>申请授权</h3>
+        <textarea id="requestMessage" placeholder="请简单说明申请授权的原因（选填）"></textarea>
+        <div class="form-actions">
+            <button onclick="closeAuthRequestModal()" class="cancel-btn">取消</button>
+            <button onclick="submitAuthRequest()" class="submit-btn">提交申请</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function requestAuth() {
+    document.getElementById('authRequestModal').style.display = 'flex';
+}
+
+function closeAuthRequestModal() {
+    document.getElementById('authRequestModal').style.display = 'none';
+}
+
+function submitAuthRequest() {
+    const message = document.getElementById('requestMessage').value;
+    const formData = new FormData();
+    formData.append('message', message);
+
+    fetch('{{ url_for("request_auth", admin_id=user.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeAuthRequestModal();
+            // 禁用申请按钮
+            document.querySelector('.request-auth-btn').disabled = true;
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('发送申请时出现错误，请稍后重试');
+    });
+}
+
+// 点击弹窗外部关闭弹窗
+document.getElementById('authRequestModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAuthRequestModal();
+    }
+});
+
+function notifyAdmin(adminId) {
+    fetch(`/notify_admin/${adminId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const contactBtn = document.querySelector('.contact-admin');
+            const notificationStatus = document.getElementById('notification-status');
+            
+            if (contactBtn) {
+                contactBtn.disabled = true;
+                contactBtn.style.backgroundColor = '#6c757d';
+            }
+            
+            if (notificationStatus) {
+                notificationStatus.style.display = 'block';
+            }
+            
+            // 更新授权状态显示
+            const authStatusSpan = document.querySelector('.unauthorized-status');
+            if (authStatusSpan) {
+                authStatusSpan.className = 'waiting-status';
+                authStatusSpan.textContent = '等待确认';
+            }
+        } else if (data.status === 'info') {
+            alert(data.message);
+        } else {
+            alert('发送申请失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('发送申请失败，请稍后重试');
+    });
+}
+</script>
+{% endblock %} 

@@ -1,55 +1,79 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户列表 - 卡鲁二手哥</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>用户列表</h1>
-            <a href="{{ url_for('index') }}" class="back-btn">返回首页</a>
-        </header>
+{% extends "base.html" %}
 
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message">{{ message }}</div>
+{% block content %}
+<div class="users-page">
+    <div class="users-container">
+        <div class="users-section">
+            <h2><span class="online-indicator"></span>在线用户 ({{ online_users|length }})</h2>
+            <div class="users-grid">
+                {% for user in online_users %}
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <span class="material-icons">account_circle</span>
+                    </div>
+                    <div class="user-info">
+                        <h3>
+                            <a href="{{ url_for('user_profile', user_id=user.id) }}">{{ user.username }}</a>
+                            {% if user.is_admin %}
+                            <span class="badge admin">管理员</span>
+                            {% endif %}
+                            {% if user.is_authorized and not user.is_admin %}
+                            <span class="badge authorized">已授权</span>
+                            {% endif %}
+                        </h3>
+                        <p class="user-status online">在线</p>
+                        {% if g.user and g.user.is_admin and user.id != g.user.id %}
+                            {% if not user.is_authorized %}
+                            <form action="{{ url_for('authorize_user', user_id=user.id) }}" method="post" class="auth-form">
+                                <button type="submit" class="auth-button authorize">授权用户</button>
+                            </form>
+                            {% else %}
+                            <form action="{{ url_for('deauthorize_user', user_id=user.id) }}" method="post" class="auth-form">
+                                <button type="submit" class="auth-button deauthorize">取消授权</button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <div class="users-container">
-            <div class="users-section online-users">
-                <h2>在线用户 ({{ online_users|length }})</h2>
-                <div class="users-grid">
-                    {% for user in online_users %}
-                    <div class="user-card">
-                        <div class="user-status online"></div>
-                        <h3>{{ user.username }}</h3>
-                        <p class="user-info">上次在线：刚刚</p>
-                        <a href="{{ url_for('user_profile', user_id=user.id) }}" class="btn view-profile-btn">查看主页</a>
-                    </div>
-                    {% endfor %}
-                </div>
             </div>
+        </div>
 
-            <div class="users-section offline-users">
-                <h2>离线用户 ({{ offline_users|length }})</h2>
-                <div class="users-grid">
-                    {% for user in offline_users %}
-                    <div class="user-card">
-                        <div class="user-status offline"></div>
-                        <h3>{{ user.username }}</h3>
-                        <p class="user-info">上次在线：{{ ((user.last_seen - now).total_seconds() / 60)|int }} 分钟前</p>
-                        <a href="{{ url_for('user_profile', user_id=user.id) }}" class="btn view-profile-btn">查看主页</a>
+        <div class="users-section">
+            <h2><span class="offline-indicator"></span>离线用户 ({{ offline_users|length }})</h2>
+            <div class="users-grid">
+                {% for user in offline_users %}
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <span class="material-icons">account_circle</span>
                     </div>
-                    {% endfor %}
+                    <div class="user-info">
+                        <h3>
+                            <a href="{{ url_for('user_profile', user_id=user.id) }}">{{ user.username }}</a>
+                            {% if user.is_admin %}
+                            <span class="badge admin">管理员</span>
+                            {% endif %}
+                            {% if user.is_authorized and not user.is_admin %}
+                            <span class="badge authorized">已授权</span>
+                            {% endif %}
+                        </h3>
+                        <p class="user-status offline">离线</p>
+                        {% if g.user and g.user.is_admin and user.id != g.user.id %}
+                            {% if not user.is_authorized %}
+                            <form action="{{ url_for('authorize_user', user_id=user.id) }}" method="post" class="auth-form">
+                                <button type="submit" class="auth-button authorize">授权用户</button>
+                            </form>
+                            {% else %}
+                            <form action="{{ url_for('deauthorize_user', user_id=user.id) }}" method="post" class="auth-form">
+                                <button type="submit" class="auth-button deauthorize">取消授权</button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
-</body>
-</html> 
+</div>
+{% endblock %} 

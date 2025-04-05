@@ -1,52 +1,103 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>上传新物品 - 卡鲁二手哥</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1>上传新物品</h1>
-            <a href="{{ url_for('index') }}" class="back-btn">返回首页</a>
-        </header>
+{% extends "base.html" %}
 
+{% block title %}上传新物品 - 卡鲁二手哥{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-box">
+        <h2>发布物品</h2>
         <form method="POST" enctype="multipart/form-data" class="upload-form">
             <div class="form-group">
-                <label for="title">物品名称：</label>
-                <input type="text" id="title" name="title" required>
+                <label for="title">物品名称</label>
+                <input type="text" id="title" name="title" required placeholder="请输入物品名称">
             </div>
-
+            
             <div class="form-group">
-                <label for="description">物品描述：</label>
-                <textarea id="description" name="description" required></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="price">价格：</label>
-                <input type="number" id="price" name="price" step="0.01" required>
-            </div>
-
-            <div class="form-group">
-                <label for="category">类别：</label>
+                <label for="category">物品类别</label>
                 <select id="category" name="category" required>
-                    <option value="">请选择类别</option>
+                    <option value="" disabled selected>请选择类别</option>
                     <option value="办公">办公</option>
-                    <option value="生活">生活</option>
-                    <option value="娱乐">娱乐</option>
+                    <option value="家用电子">家用电子</option>
+                    <option value="生活用品">生活用品</option>
                     <option value="学习资料">学习资料</option>
                 </select>
             </div>
-
+            
             <div class="form-group">
-                <label for="image">物品图片：</label>
-                <input type="file" id="image" name="image" accept="image/*" required>
+                <label for="price">价格</label>
+                <div class="price-input">
+                    <span class="currency">¥</span>
+                    <input type="number" id="price" name="price" step="0.01" min="0" required placeholder="请输入价格">
+                </div>
             </div>
-
-            <button type="submit" class="submit-btn">上传</button>
+            
+            <div class="form-group">
+                <label for="description">物品描述</label>
+                <textarea id="description" name="description" required placeholder="请详细描述物品的具体情况，例如：使用时长、新旧程度、是否有损坏等"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="image">上传图片</label>
+                <div class="image-upload">
+                    <input type="file" id="image" name="image" accept="image/*" required onchange="previewImage(this)">
+                    <div class="upload-preview">
+                        <img id="preview" src="#" alt="预览图" style="display: none;">
+                        <div class="upload-placeholder">
+                            <span class="material-icons">add_photo_alternate</span>
+                            <span>点击或拖拽图片到此处</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-button">发布物品</button>
         </form>
     </div>
-</body>
-</html> 
+</div>
+
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('preview');
+    const placeholder = document.querySelector('.upload-placeholder');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 拖拽上传
+const dropZone = document.querySelector('.upload-preview');
+const fileInput = document.getElementById('image');
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        previewImage(fileInput);
+    }
+});
+
+dropZone.addEventListener('click', () => {
+    fileInput.click();
+});
+</script>
+{% endblock %} 

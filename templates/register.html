@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header bg-success text-white">
+                    <h3 class="text-center mb-0">注册新账号</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">注册须知：</h5>
+                        <ul class="mb-0">
+                            <li>用户名要求：
+                                <ul>
+                                    <li>不能为空</li>
+                                    <li>长度不超过80个字符</li>
+                                    <li>不能使用系统保留的管理员用户名</li>
+                                    <li>不能与已注册的用户名重复</li>
+                                </ul>
+                            </li>
+                            <li>密码要求：
+                                <ul>
+                                    <li>不能为空</li>
+                                    <li>建议使用字母、数字和符号的组合</li>
+                                    <li>建议长度在6-20个字符之间</li>
+                                </ul>
+                            </li>
+                            <li>注册成功后需要管理员授权才能发布和预定物品</li>
+                        </ul>
+                    </div>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="username" name="username" required 
+                                   placeholder="请输入用户名" autocomplete="off"
+                                   maxlength="80">
+                            <div class="form-text">用户名一旦创建不能修改</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码</label>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                   placeholder="请输入密码">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">创建账号</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-4">
+                        <p class="mb-0">已有账号？</p>
+                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg mt-2">返回登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert ul {
+    padding-left: 20px;
+}
+.alert ul ul {
+    padding-left: 20px;
+    margin-top: 5px;
+}
+.alert li {
+    margin-bottom: 5px;
+}
+.alert ul ul li {
+    margin-bottom: 3px;
+}
+.card-header {
+    background-color: #198754 !important;
+}
+</style>
+{% endblock %} 
